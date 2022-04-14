@@ -1,0 +1,191 @@
+
+
+
+REPORT zmmr039.
+*&---------------------------------------------------------------------*
+*&Estrutura
+*&---------------------------------------------------------------------*
+TYPES: BEGIN OF ty_marc,
+         matnr TYPE marc-matnr,
+         maktx TYPE makt-maktx,
+         werks TYPE marc-werks,
+         dismm TYPE marc-dismm,
+         mmsta TYPE marc-mmsta,
+       END OF ty_marc.
+
+*&---------------------------------------------------------------------*
+*&Tabela interna / Work Area
+*&---------------------------------------------------------------------*
+DATA: ti_marc     TYPE TABLE OF ty_marc.
+*      ti_fieldcat TYPE slis_t_fieldcat_alv,
+*      wa_fieldcat TYPE slis_fieldcat_alv.
+
+DATA: lo_header  TYPE REF TO cl_salv_form_layout_grid,
+      lo_h_label TYPE REF TO cl_salv_form_label,
+      lo_h_flow  TYPE REF TO cl_salv_form_layout_flow.
+*&---------------------------------------------------------------------*
+*&Variavel com referencia a classe CL_SALV
+*&---------------------------------------------------------------------*
+DATA: alv TYPE REF TO cl_salv_table.
+
+*&---------------------------------------------------------------------*
+*&Tela de Seleção
+*&---------------------------------------------------------------------*
+TABLES: marc.
+SELECTION-SCREEN: BEGIN OF BLOCK b1 WITH FRAME.
+SELECTION-SCREEN: BEGIN OF BLOCK b2 WITH FRAME TITLE TEXT-001.
+
+SELECT-OPTIONS:
+  s_matnr FOR marc-matnr.
+*  PARAMETERS:
+*          s_werks TYPE marc-werks.
+
+*  s_werks FOR marc-werks OBLIGATORY.
+
+SELECTION-SCREEN: END OF BLOCK b2.
+SELECTION-SCREEN: END OF BLOCK b1.
+*&---------------------------------------------------------------------*
+*&Início
+*&---------------------------------------------------------------------*
+START-OF-SELECTION.
+*&---------------------------------------------------------------------*
+*&Preform
+*&---------------------------------------------------------------------*
+  PERFORM select_data.
+  PERFORM iniciaalv.
+  PERFORM header.
+  PERFORM display.
+*&---------------------------------------------------------------------*
+*&Seleção de dados no Banco
+*&---------------------------------------------------------------------*
+FORM select_data.
+
+  SELECT  marc~matnr,
+          makt~maktx,
+          marc~werks,
+          marc~dismm,
+          marc~mmsta
+          FROM marc
+          INNER JOIN makt
+          ON marc~matnr = makt~matnr
+          WHERE marc~matnr IN @s_matnr  AND
+*          marc~werks = @s_werks AND
+          marc~dismm = 'ND' AND
+          marc~mmsta = 'Z2'
+          INTO TABLE @ti_marc.
+
+  SORT ti_marc STABLE BY werks matnr.
+
+
+  IF sy-subrc <> 0.
+    MESSAGE TEXT-002 TYPE 'I'.
+  ENDIF.
+
+ENDFORM.
+*&---------------------------------------------------------------------*
+*&Estrutura ALV
+*&---------------------------------------------------------------------*
+FORM iniciaalv.
+
+  DATA message TYPE REF TO cx_salv_msg.
+
+  TRY.
+      cl_salv_table=>factory(
+      IMPORTING
+          r_salv_table = alv
+      CHANGING
+          t_table = ti_marc ).
+
+      PERFORM enable_layout.
+      PERFORM opt_colum.
+      PERFORM set_toolbar.
+      PERFORM display_set.
+
+    CATCH cx_salv_msg INTO message .
+
+  ENDTRY.
+
+ENDFORM.
+*&---------------------------------------------------------------------*
+*&Mostra Display
+*&---------------------------------------------------------------------*
+FORM display.
+
+  alv->display( ).
+
+ENDFORM.
+
+*&---------------------------------------------------------------------*
+*&Ativação para configuração de layout
+*&---------------------------------------------------------------------*
+FORM enable_layout.
+
+  DATA: layout_set TYPE REF TO cl_salv_layout,
+        layout_key TYPE salv_s_layout_key.
+
+  layout_set = alv->get_layout( ).
+  layout_key-report = sy-repid.
+  layout_set->set_key( layout_key ).
+  layout_set->set_save_restriction( if_salv_c_layout=>restrict_none ).
+
+ENDFORM.
+*&---------------------------------------------------------------------*
+*&Ajuste das colunas
+*&---------------------------------------------------------------------*
+FORM opt_colum.
+
+  DATA columm TYPE REF TO cl_salv_columns_table.
+
+  columm = alv->get_columns( ).
+
+  columm->set_optimize( ).
+
+ENDFORM.
+*&---------------------------------------------------------------------*
+*&Adiciona barra ferramentas
+*&---------------------------------------------------------------------*
+FORM set_toolbar.
+
+  DATA func TYPE REF TO cl_salv_functions_list.
+
+  func = alv->get_functions( ).
+  func->set_default( ).
+  func->set_export_spreadsheet( ).
+  func->set_print_preview( ).
+
+ENDFORM.
+*&---------------------------------------------------------------------*
+*&Seta o nome do relatório
+*&---------------------------------------------------------------------*
+FORM display_set.
+
+  DATA display_set  TYPE REF TO cl_salv_display_settings.
+
+  display_set = alv->get_display_settings( ).
+  display_set->set_striped_pattern( if_salv_c_bool_sap=>true ).
+  display_set->set_list_header('Relatório' ).
+
+ENDFORM.
+
+FORM header.
+
+  DESCRIBE TABLE ti_marc LINES DATA(v_total_lines).
+
+  CREATE OBJECT lo_header.
+
+*   Writing Bold phrase
+  lo_h_label = lo_header->create_label( row = 1 column = 1 ).
+  lo_h_label->set_text( 'RELATÓRIO TIPO DE MRP' ).
+
+*   Writing Header texts
+  lo_h_flow = lo_header->create_flow( row = 2  column = 1 ).
+  lo_h_flow->create_text( text = 'Total de registros: ' ).
+
+  lo_h_flow = lo_header->create_flow( row = 2  column = 2 ).
+  lo_h_flow->create_text( text = v_total_lines ).
+
+  alv->set_top_of_list( lo_header ).
+  alv->set_top_of_list_print( lo_header ).
+
+ENDFORM.
+
