@@ -1,0 +1,29 @@
+*&---------------------------------------------------------------------*
+*& Report ZCALCULADORA
+*&---------------------------------------------------------------------*
+*&
+*&---------------------------------------------------------------------*
+REPORT ZCALCULADORA.
+
+PARAMETERS: P_NUM1  TYPE I,
+            P_NUM2  TYPE I,
+            P_SINAL TYPE C.
+
+DATA        VL_RESU TYPE I.
+
+START-OF-SELECTION.
+
+  CASE P_SINAL.
+    WHEN '+'.
+      VL_RESU = P_NUM1 + P_NUM2.
+    WHEN '-'.
+      VL_RESU = P_NUM1 - P_NUM2.
+    WHEN '/'.
+      VL_RESU = P_NUM1 / P_NUM2.
+    WHEN '*'.
+      VL_RESU = P_NUM1 * P_NUM2.
+    WHEN OTHERS.
+      MESSAGE 'Sinal inválido' TYPE 'I'.
+  ENDCASE.
+
+  WRITE: VL_RESU.
