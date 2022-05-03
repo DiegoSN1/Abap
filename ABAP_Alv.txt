@@ -1,7 +1,8 @@
 *&---------------------------------------------------------------------*
-*& Report Z_TESTE123
+*& Report Z_RELATORIO_ALV
 *&---------------------------------------------------------------------*
-*&
+*& Descrição: ALV
+*& Autor: Diego Silva - Data: 22.04.2022
 *&---------------------------------------------------------------------*
 REPORT Z_TESTE123.
 
@@ -89,7 +90,7 @@ APPEND WA_FCAT TO I_FCAT.
 
 CLEAR WA_FCAT.
 
-CALL FUNCTION 'REUSE_ALV_GRID_DISPLAY' "FUNÇÃO PARA GERAR ALV
+CALL FUNCTION 'REUSE_ALV_GRID_DISPLAY'
   EXPORTING
 *
     I_CALLBACK_PROGRAM = REPID
